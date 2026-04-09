@@ -102,36 +102,35 @@ async def successful_payment(message: types.Message):
     sub_type = payload["type"]
     username = payload["username"]
     
-    # Генерируем ключ
-    key = "EXP-" + ''.join(random.choices(string.ascii_uppercase + string.digits, k=15))
+    # Отправляем запрос к твоему сайту
+    import requests
+    response = requests.post("https://experimentproduct.rf.gd/api/create_key.php", json={
+        "username": username,
+        "subscription_type": sub_type,
+        "payment_id": payment.telegram_payment_charge_id
+    })
     
-    if sub_type == "forever":
-        period = "НАВСЕГДА"
-    elif sub_type == "90days":
-        period = "90 дней"
+    result = response.json()
+    
+    if result["success"]:
+        key = result["key"]
+        if sub_type == "forever":
+            period = "НАВСЕГДА"
+        elif sub_type == "90days":
+            period = "90 дней"
+        else:
+            period = "30 дней"
+        
+        await message.answer(
+            f"✅ *Оплата успешна!*\n\n"
+            f"Подписка: {period}\n"
+            f"⭐ {payment.total_amount} Stars\n\n"
+            f"🎁 *Ваш ключ:* `{key}`\n\n"
+            f"Активируйте ключ на сайте: experimentproduct.rf.gd/dashboard.php",
+            parse_mode="Markdown"
+        )
     else:
-        period = "30 дней"
-    
-    # Отправляем ключ пользователю
-    await message.answer(
-        f"✅ *Оплата успешна!*\n\n"
-        f"Подписка: {period}\n"
-        f"Списано Stars: {payment.total_amount}\n\n"
-        f"🎁 *Ваш ключ:* `{key}`\n\n"
-        f"Активируйте ключ на сайте: experimentproduct.rf.gd/dashboard.php\n\n"
-        f"По вопросам: @fbikk",
-        parse_mode="Markdown"
-    )
-    
-    # Уведомление админу
-    await bot.send_message(
-        ADMIN_ID,
-        f"🆕 Новая покупка!\n"
-        f"Пользователь: @{username}\n"
-        f"Тип: {period}\n"
-        f"Ключ: {key}\n"
-        f"Payment ID: {payment.telegram_payment_charge_id}"
-    )
+        await message.answer("❌ Ошибка при создании ключа. Напишите @fbikk")
 
 # ===== ЗАПУСК =====
 async def main():
